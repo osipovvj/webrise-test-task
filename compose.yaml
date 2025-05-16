@@ -1,9 +1,36 @@
 services:
   postgres:
     image: 'postgres:latest'
+    container_name: 'webrise-test-task-postgres'
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      - POSTGRES_DB=webrisedb
+      - POSTGRES_PASSWORD=webrisesecret
+      - POSTGRES_USER=webriseuser
+    volumes:
+      - db-data:/var/lib/postgresql/data
     ports:
-      - '5432'
+      - "5432:5432"
+    healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U webriseuser -d webrisedb"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webrise-test-task-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/webrisedb
+      SPRING_DATASOURCE_USERNAME: webriseuser
+      SPRING_DATASOURCE_PASSWORD: webrisesecret
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  db-data:
